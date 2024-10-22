@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wheee</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎡</text></svg>"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22> <text y=%2250%%22 x=%2250%%22 dy=%22.35em%22 font-size=%2264%22 text-anchor=%22middle%22>🎡</text></svg>"
+    />
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden; /* Prevent horizontal scrolling */
+      }
+
+      text {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 20px;
+        pointer-events: none;
+      }
+
+      /* Team section at the top */
+      #team {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap; /* Allow items to wrap */
+        align-items: center;
+        justify-content: flex-start;
+        position: relative;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: auto; /* Allow dynamic height for wrapping */
+        padding: 10px 20px; /* Add padding for better spacing */
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Light shadow for separation */
+        font-size: 20px;
+        background-color: rgb(240, 128, 0, 0.5);
+        h4 {
+          margin: 5px 5px 5px 0px;
+        }
+      }
+
+      .checkbox-column {
+        display: flex;
+        align-items: center;
+        margin-right: 20px; /* Space between individual checkboxes */
+      }
+
+      label {
+        margin-left: 5px;
+      }
+
+      /* Countdown timer display */
+      #timer {
+        font-size: 30px;
+        font-weight: bold;
+        margin: 20px 0px;
+        text-align: center;
+        justify-content: center;
+        background-color: #f0f0f0;
+        color: #000000;
+        border-radius: 8px;
+        padding: 5px 10px;
+      }
+
+      /* Wrapper to center chart and winner horizontally and vertically */
+      #content-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+
+      /* Container for wheel and winner to be next to each other */
+      #wheel-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      #chart {
+        height: 500px;
+        width: 100%;
+        display: flex;
+        justify-content: right;
+      }
+
+      #winner {
+        width: 100%;
+        height: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: left;
+        margin-left: 20px; /* Space between the chart and winner */
+      }
+
+      #winner h1 {
+        font-size: 100px;
+        font-weight: bold;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        margin: 0;
+      }
+
+      /* Buttons to check/uncheck all */
+      #button-container {
+        display: flex;
+        justify-content: flex-start;
+      }
+
+      .control-button {
+        margin-right: 10px;
+        padding: 4px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        border: none;
+        background-color: #f0f0f0;
+        color: black;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .control-button:hover {
+        background-color: #0056b3;
+      }
+
+      /* Media query for smaller screens */
+      @media (max-width: 768px) {
+        #team {
+          justify-content: center; /* Center items on small screens */
+        }
+
+        #wheel-container {
+          flex-direction: column; /* Stack chart and winner vertically */
+          align-items: center;
+        }
+
+        #chart {
+          width: 100%; /* Ensure chart fits the width of the screen */
+          margin-bottom: 20px; /* Add space below the chart */
+        }
+
+        #winner {
+          margin-left: 0; /* Remove left margin on small screens */
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Team section is at the top -->
+    <div id="team" role="group" aria-label="Team selection">
+      <h4>Team Members:</h4>
+      <!-- Container for checkboxes -->
+    </div>
+    <!-- Wrapper to center content vertically and horizontally -->
+    <div id="content-wrapper">
+      <!-- Countdown Timer Display -->
+      <div id="timer">Timer</div>
+      <!-- Container to hold the chart (wheel) and winner next to each other -->
+      <div id="wheel-container">
+        <!-- Chart section -->
+        <div id="chart"></div>
+
+        <!-- Winner section -->
+        <div id="winner" aria-labelledby="winner-header">
+          <h1 id="winner-header"></h1>
+        </div>
+      </div>
+    </div>
+
+    <script src="members.js"></script>
+    <script src="app.js"></script>
+    <script>
+      let currentMembers = [...ALL_MEMBERS];
+      let selectedTeam;
+      let timer; // Stores the countdown timer
+      let timeLeft = 60; // Initial time in seconds
+
+      // Dynamically create checkboxes for each member
+      ALL_MEMBERS.forEach((member) => {
+        const memberName = member.label.toString();
+
+        // Create a column for each member
+        const column = d3
+          .select("#team")
+          .append("div")
+          .attr("class", "checkbox-column");
+
+        column
+          .append("input")
+          .attr("type", "checkbox")
+          .attr("id", memberName)
+          .attr("checked", true)
+          .on("change", () => updateMembers(memberName)); // Change event triggers updateMembers
+
+        column
+          .append("label")
+          .attr("for", memberName)
+          .text(getMemberDisplay(member));
+      });
+
+      
+
+      d3.select("#team")
+        .append("div")
+        .attr("class", "button-container")
+        .attr("id", "button-container");
+
+      d3.select("#button-container")
+        .append("button")
+        .attr("class", "control-button")
+        .attr("id", "check-all-button")
+        .text("Check All")
+        .on("click", () => checkAllMembers());
+
+      d3.select("#button-container")
+        .append("button")
+        .attr("class", "control-button")
+        .attr("id", "uncheck-all-button")
+        .text("Uncheck All")
+        .on("click", () => uncheckAllMembers());
+
+      // Initialize the app
+      app();
+
+      // Function to check all members
+      function checkAllMembers() {
+        ALL_MEMBERS.forEach((member) => {
+          d3.select(`#${member.label}`).property("checked", true);
+        });
+        updateMembers();
+        app();
+      }
+
+      // Function to uncheck all members
+      function uncheckAllMembers() {
+        ALL_MEMBERS.forEach((member) => {
+          d3.select(`#${member.label}`).property("checked", false);
+        });
+        updateMembers();
+        app();
+      }
+
+      // Function to update members
+      function updateMembers(memberName) {
+        currentMembers = ALL_MEMBERS.filter((member) => {
+          const memberCheckbox = d3
+            .select(`#${member.label}`)
+            .property("checked");
+          return memberCheckbox;
+        });
+
+        // If no members are selected, add dummy data
+        if (currentMembers.length === 0) {
+          currentMembers.push({ label: "Empty", backgroundColor: "#FF5F00" }); // Add dummy member
+        } else {
+          // If a real member is selected, remove the dummy data (if it exists)
+          currentMembers = currentMembers.filter(
+            (member) => member.value !== "Empty"
+          );
+        }
+
+        // Re-render the app with updated members
+        app();
+      }
+    </script>
+  </body>
+</html>
